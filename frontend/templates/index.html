@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="TaskMind" />
+  <meta name="theme-color" content="#0c0c0f" />
+  <title>TaskMind</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="/static/css/main.css" />
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-overlay" class="auth-overlay">
+  <div class="auth-bg-orb orb1"></div>
+  <div class="auth-bg-orb orb2"></div>
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="logo-icon">&#x25C8;</div>
+      <div>
+        <div class="logo-text">TaskMind</div>
+        <div class="logo-sub">AI Scheduling Assistant</div>
+      </div>
+    </div>
+    <div class="auth-tabs">
+      <button class="tab-btn active" data-tab="login">Sign In</button>
+      <button class="tab-btn" data-tab="register">Sign Up</button>
+    </div>
+    <form id="login-form" class="auth-form active">
+      <div class="field-group">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email" required />
+      </div>
+      <div class="field-group">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="Your password" autocomplete="current-password" required />
+      </div>
+      <p id="login-error" class="form-error"></p>
+      <button type="submit" class="btn-primary btn-full">Sign In</button>
+    </form>
+    <form id="register-form" class="auth-form">
+      <div class="field-group">
+        <label>Name</label>
+        <input type="text" id="reg-name" placeholder="Your name" autocomplete="name" />
+      </div>
+      <div class="field-group">
+        <label>Email</label>
+        <input type="email" id="reg-email" placeholder="you@example.com" autocomplete="email" required />
+      </div>
+      <div class="field-group">
+        <label>Password</label>
+        <input type="password" id="reg-password" placeholder="Min 6 characters" autocomplete="new-password" required />
+      </div>
+      <p id="register-error" class="form-error"></p>
+      <button type="submit" class="btn-primary btn-full">Create Account</button>
+    </form>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="app hidden">
+
+  <header class="top-bar">
+    <div class="top-bar-left">
+      <span class="top-logo">&#x25C8; TaskMind</span>
+    </div>
+    <div class="top-bar-right">
+      <div class="notif-bell" id="notif-bell" title="Notifications">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <span class="notif-dot hidden" id="notif-dot"></span>
+      </div>
+      <div class="user-avatar-sm" id="user-avatar">?</div>
+    </div>
+  </header>
+
+  <main class="main-content">
+
+    <!-- DASHBOARD -->
+    <section id="page-dashboard" class="page active">
+      <div class="dash-hero">
+        <div class="dash-greeting" id="dash-greeting">Good morning</div>
+        <div class="dash-name" id="dash-name">--</div>
+        <div class="dash-date" id="today-date">--</div>
+        <div class="dash-stats-row">
+          <div class="dash-stat">
+            <span class="ds-val" id="stat-scheduled">0</span>
+            <span class="ds-lbl">Scheduled</span>
+          </div>
+          <div class="dash-stat-sep"></div>
+          <div class="dash-stat">
+            <span class="ds-val green" id="stat-completed">0</span>
+            <span class="ds-lbl">Done</span>
+          </div>
+          <div class="dash-stat-sep"></div>
+          <div class="dash-stat">
+            <span class="ds-val amber" id="stat-hours">0h</span>
+            <span class="ds-lbl">Tracked</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="progress-section">
+        <div class="progress-labels">
+          <span>Daily Progress</span>
+          <span id="progress-pct" class="progress-pct-label">0%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="quick-actions">
+        <button class="qa-btn" id="recalculate-btn">
+          <span class="qa-icon">&#x27F3;</span><span>Recalculate</span>
+        </button>
+        <button class="qa-btn primary" id="add-task-btn-dash">
+          <span class="qa-icon">+</span><span>Add Task</span>
+        </button>
+        <button class="qa-btn" id="notif-enable-btn">
+          <span class="qa-icon">&#x1F514;</span>
+          <span id="notif-btn-label">Notify</span>
+        </button>
+      </div>
+
+      <div class="section-label">Up Next</div>
+      <div class="up-next-card" id="up-next-card">
+        <div class="un-empty">Nothing coming up</div>
+      </div>
+
+      <div class="section-label-row">
+        <span class="section-label" style="margin:0">Today's Schedule</span>
+        <span class="live-clock" id="current-time-display"></span>
+      </div>
+      <div id="timeline-list" class="timeline-list">
+        <div class="empty-state">
+          <div class="empty-icon">&#x25C8;</div>
+          <p>No schedule yet.<br/>Add tasks and tap Recalculate.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TASKS -->
+    <section id="page-tasks" class="page">
+      <div class="page-header">
+        <h1 class="page-title">Tasks</h1>
+        <button class="btn-icon-round" id="add-task-btn">+</button>
+      </div>
+      <div class="filter-scroll">
+        <button class="pill active" data-filter="all">All</button>
+        <button class="pill" data-filter="pending">Pending</button>
+        <button class="pill" data-filter="in_progress">Active</button>
+        <button class="pill" data-filter="completed">Done</button>
+      </div>
+      <div id="tasks-list" class="tasks-list">
+        <div class="empty-state"><div class="empty-icon">&#x25FB;</div><p>No tasks yet.</p></div>
+      </div>
+    </section>
+
+    <!-- ROUTINES -->
+    <section id="page-routines" class="page">
+      <div class="page-header">
+        <h1 class="page-title">Routines</h1>
+        <button class="btn-icon-round" id="add-routine-btn">+</button>
+      </div>
+      <p class="page-sub">Daily habits auto-inserted into your schedule</p>
+      <div id="routines-list" class="card-list">
+        <div class="empty-state"><div class="empty-icon">&#x21BA;</div><p>No routines yet.</p></div>
+      </div>
+    </section>
+
+    <!-- REPORTS -->
+    <section id="page-reports" class="page">
+      <div class="page-header">
+        <h1 class="page-title">Reports</h1>
+      </div>
+      <div class="filter-scroll">
+        <button class="pill active" data-report="daily">Daily</button>
+        <button class="pill" data-report="weekly">Weekly</button>
+        <button class="pill" data-report="monthly">Monthly</button>
+      </div>
+      <div class="metrics-row">
+        <div class="metric-box">
+          <span class="metric-val" id="rpt-completed">--</span>
+          <span class="metric-lbl">Tasks Done</span>
+        </div>
+        <div class="metric-box">
+          <span class="metric-val amber" id="rpt-hours">--</span>
+          <span class="metric-lbl">Hours</span>
+        </div>
+        <div class="metric-box">
+          <span class="metric-val green" id="rpt-rate">--</span>
+          <span class="metric-lbl">Rate</span>
+        </div>
+      </div>
+      <div class="card chart-card">
+        <h3 id="chart-title" class="chart-title">Activity</h3>
+        <canvas id="report-chart" height="180"></canvas>
+      </div>
+      <div class="card" id="cat-breakdown-card" style="display:none">
+        <h3 class="card-section-title">Category Breakdown</h3>
+        <div id="cat-breakdown" class="cat-breakdown"></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="page-settings" class="page">
+      <div class="page-header">
+        <h1 class="page-title">Settings</h1>
+      </div>
+
+      <div class="card settings-card">
+        <h3 class="card-section-title">Notifications</h3>
+        <p class="settings-desc">Get reminders before your scheduled tasks start.</p>
+        <div class="notif-status-row">
+          <span id="notif-status-text" class="notif-status">Not enabled</span>
+          <button class="btn-secondary" id="notif-toggle-btn">Enable</button>
+        </div>
+        <div class="field-group mt12">
+          <label>Remind me (minutes before)</label>
+          <select id="notif-lead-time">
+            <option value="5">5 minutes</option>
+            <option value="10">10 minutes</option>
+            <option value="15" selected>15 minutes</option>
+            <option value="30">30 minutes</option>
+            <option value="60">1 hour</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card settings-card">
+        <h3 class="card-section-title">Profile</h3>
+        <form id="profile-form" class="settings-form">
+          <div class="field-group">
+            <label>Display Name</label>
+            <input type="text" id="s-name" autocomplete="name" />
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label>Wake Time</label>
+              <input type="time" id="s-wake" value="07:00" />
+            </div>
+            <div class="field-group">
+              <label>Sleep Time</label>
+              <input type="time" id="s-sleep" value="23:00" />
+            </div>
+          </div>
+          <button type="submit" class="btn-primary">Save Changes</button>
+          <p id="settings-msg" class="form-success hidden">Saved!</p>
+        </form>
+      </div>
+
+      <div class="card settings-card">
+        <h3 class="card-section-title">Categories</h3>
+        <div id="categories-list" class="cat-list"></div>
+        <div class="add-cat-row">
+          <input type="text" id="new-cat-name" placeholder="New category" />
+          <input type="color" id="new-cat-color" value="#7c6cf8" />
+          <button class="btn-secondary" id="add-cat-btn">Add</button>
+        </div>
+      </div>
+
+      <button class="btn-danger-full" id="logout-btn">Sign Out</button>
+    </section>
+
+  </main>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav">
+    <a class="bn-item active" data-page="dashboard">
+      <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/>
+        <rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>
+      </svg>
+      <span>Today</span>
+    </a>
+    <a class="bn-item" data-page="tasks">
+      <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+      </svg>
+      <span>Tasks</span>
+    </a>
+    <a class="bn-item" data-page="routines">
+      <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+        <polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+      </svg>
+      <span>Routines</span>
+    </a>
+    <a class="bn-item" data-page="reports">
+      <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+        <line x1="6" y1="20" x2="6" y2="14"/>
+      </svg>
+      <span>Reports</span>
+    </a>
+    <a class="bn-item" data-page="settings">
+      <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+      <span>Settings</span>
+    </a>
+  </nav>
+</div>
+
+<!-- MODALS -->
+<div id="task-modal" class="sheet-overlay hidden">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h2 id="task-modal-title">New Task</h2>
+      <button class="sheet-close" data-close="task-modal">&#x2715;</button>
+    </div>
+    <div class="sheet-body">
+      <form id="task-form">
+        <input type="hidden" id="task-id" />
+        <div class="field-group">
+          <label>Title *</label>
+          <input type="text" id="t-title" placeholder="e.g. Write report" required />
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label>Duration (h)</label>
+            <input type="number" id="t-duration" value="1" min="0.25" step="0.25" />
+          </div>
+          <div class="field-group">
+            <label>Deadline Date</label>
+            <input type="text" id="t-deadline-date" placeholder="dd-mm-yyyy"
+              class="deadline-input" maxlength="10" inputmode="numeric" autocomplete="off" />
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label>Deadline Time</label>
+            <input type="text" id="t-deadline-time" placeholder="HH:mm (optional)"
+              class="deadline-input" maxlength="5" inputmode="numeric" autocomplete="off" />
+          </div>
+          <div class="field-group">
+            <label>Preview</label>
+            <div class="deadline-preview" id="deadline-preview">Not set</div>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label>Preferred Time</label>
+            <select id="t-preferred">
+              <option value="any">Any time</option>
+              <option value="morning">Morning</option>
+              <option value="afternoon">Afternoon</option>
+              <option value="evening">Evening</option>
+              <option value="night">Night</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label>Category</label>
+            <select id="t-category"><option value="">None</option></select>
+          </div>
+        </div>
+        <div class="field-group">
+          <label>Notes</label>
+          <textarea id="t-notes" placeholder="Optional notes..." rows="2"></textarea>
+        </div>
+        <div class="sheet-actions">
+          <button type="button" class="btn-ghost" data-close="task-modal">Cancel</button>
+          <button type="submit" class="btn-primary">Save Task</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div id="routine-modal" class="sheet-overlay hidden">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h2 id="routine-modal-title">New Routine</h2>
+      <button class="sheet-close" data-close="routine-modal">&#x2715;</button>
+    </div>
+    <div class="sheet-body">
+      <form id="routine-form">
+        <input type="hidden" id="routine-id" />
+        <div class="field-group">
+          <label>Title *</label>
+          <input type="text" id="r-title" placeholder="e.g. Morning gym" required />
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label>Duration (h)</label>
+            <input type="number" id="r-duration" value="0.5" min="0.1" step="0.1" />
+          </div>
+          <div class="field-group">
+            <label>Time of Day</label>
+            <select id="r-preferred">
+              <option value="morning">Morning</option>
+              <option value="afternoon">Afternoon</option>
+              <option value="evening">Evening</option>
+              <option value="night">Night</option>
+            </select>
+          </div>
+        </div>
+        <div class="sheet-actions">
+          <button type="button" class="btn-ghost" data-close="routine-modal">Cancel</button>
+          <button type="submit" class="btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+<script src="/static/js/app.js"></script>
+</body>
+</html>

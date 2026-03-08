@@ -1,0 +1,20 @@
+{
+  "name": "TaskMind — AI Task Planner",
+  "short_name": "TaskMind",
+  "description": "AI-powered daily task scheduler and productivity tracker",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0c0c0f",
+  "theme_color": "#7c6cf8",
+  "icons": [
+    {
+      "src": "/static/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "screenshots": []
+}
