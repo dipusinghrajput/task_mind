@@ -4,6 +4,11 @@ import os
 DB_PATH = os.environ.get("DB_PATH", "taskplanner.db")
 
 def get_db():
+    # Ensure the directory exists before trying to open the file
+    db_dir = os.path.dirname(DB_PATH)
+    if db_dir and not os.path.exists(db_dir):
+        os.makedirs(db_dir, exist_ok=True)
+
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
@@ -91,4 +96,4 @@ def init_db():
 
     conn.commit()
     conn.close()
-    print("Database initialized.")
+    print(f"Database initialized at: {DB_PATH}")
