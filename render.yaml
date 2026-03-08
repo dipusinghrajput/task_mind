@@ -9,11 +9,5 @@ services:
     envVars:
       - key: SECRET_KEY
         generateValue: true
-      - key: DB_PATH
-        value: /var/data/taskplanner.db
       - key: PYTHON_VERSION
         value: 3.11.0
-    disk:
-      name: taskmind-db
-      mountPath: /var/data
-      sizeGB: 1
