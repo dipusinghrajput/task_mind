@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0b0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>PlannerAI</title>
+<link rel="manifest" href="/static/manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+
+<!-- ── LOGIN SCREEN ─────────────────────────── -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-box">
+    <div class="login-brand"><span class="brand-icon">⚡</span><span>Planner<em>AI</em></span></div>
+    <p class="login-sub">Your personal AI scheduler</p>
+    <div id="loginError" class="login-error" style="display:none"></div>
+    <div class="form-group"><label>Your Name</label><input type="text" id="loginName" placeholder="e.g. Aryan" autocomplete="name"></div>
+    <div class="form-group"><label>PIN (4 digits)</label><input type="password" id="loginPin" placeholder="0000" maxlength="4" inputmode="numeric"></div>
+    <button class="btn-login" onclick="doLogin()">Sign In</button>
+    <div class="login-divider">— or —</div>
+    <button class="btn-register" onclick="doRegister()">Create Account</button>
+    <p class="login-hint">First time? Enter a name + PIN and click Create Account.</p>
+  </div>
+</div>
+
+<!-- ── MAIN APP (hidden until logged in) ────── -->
+<div id="appShell" style="display:none">
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">⚡</div>
+    <span class="brand-name">Planner<em>AI</em></span>
+  </div>
+  <div class="sidebar-user" id="sidebarUser"></div>
+  <nav class="sidebar-nav">
+    <button class="nav-item active" data-view="schedule" onclick="switchView('schedule')"><span class="nav-icon">📅</span><span>Schedule</span></button>
+    <button class="nav-item" data-view="tasks" onclick="switchView('tasks')"><span class="nav-icon">✅</span><span>Tasks</span></button>
+    <button class="nav-item" data-view="routines" onclick="switchView('routines')"><span class="nav-icon">🔁</span><span>Routines</span></button>
+    <button class="nav-item" data-view="fixed" onclick="switchView('fixed')"><span class="nav-icon">📌</span><span>Fixed Slots</span></button>
+    <button class="nav-item" data-view="analytics" onclick="switchView('analytics')"><span class="nav-icon">📊</span><span>Analytics</span></button>
+  </nav>
+  <div class="sidebar-actions">
+    <button class="btn-recalculate" onclick="generateSchedule()"><span>⚡</span> Recalculate</button>
+    <button class="btn-holiday" onclick="toggleHoliday()"><span>🏖</span> Mark Holiday</button>
+  </div>
+  <div class="sidebar-bottom">
+    <div class="sidebar-date"><div class="date-label">Today</div><div class="date-value" id="sidebarDate"></div></div>
+    <button class="btn-logout" onclick="logout()">Sign Out</button>
+  </div>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+      <div class="date-nav">
+        <button onclick="changeDate(-1)">◀</button>
+        <h1 id="headerDate"></h1>
+        <button onclick="changeDate(1)">▶</button>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="notif-bell" onclick="toggleNotifications()" title="Notifications">
+        🔔<span class="notif-badge" id="notifBadge" style="display:none">0</span>
+      </div>
+      <button class="btn-add-task" onclick="openTaskModal()">+ Task</button>
+    </div>
+  </header>
+
+  <div class="notif-panel" id="notifPanel" style="display:none">
+    <div class="notif-panel-header"><h3>Smart Alerts</h3><button onclick="toggleNotifications()">✕</button></div>
+    <div id="notifList" class="notif-list"></div>
+  </div>
+
+  <div id="warningsBar" class="warnings-bar" style="display:none"></div>
+
+  <!-- SCHEDULE -->
+  <section class="view active" id="view-schedule">
+    <div class="schedule-layout">
+      <div class="stats-row" id="statsRow">
+        <div class="stat-card"><div class="stat-val" id="statFree">—</div><div class="stat-lbl">Free Hours</div></div>
+        <div class="stat-card"><div class="stat-val" id="statTasks">—</div><div class="stat-lbl">Tasks Today</div></div>
+        <div class="stat-card"><div class="stat-val" id="statDone">0</div><div class="stat-lbl">Done</div></div>
+        <div class="stat-card" id="statOverload" style="display:none"><div class="stat-val">⚠</div><div class="stat-lbl">Overloaded</div></div>
+      </div>
+      <div class="timeline-container" id="timelineContainer">
+        <div class="timeline-ruler" id="timelineRuler"></div>
+        <div class="timeline-blocks" id="timelineBlocks"></div>
+        <div class="timeline-now" id="timelineNow" style="display:none"></div>
+      </div>
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">⚡</div>
+        <h3>Ready to plan your day?</h3>
+        <p>Click <strong>Recalculate</strong> to generate your AI-optimized schedule.</p>
+        <button onclick="generateSchedule()">Generate Schedule</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- TASKS -->
+  <section class="view" id="view-tasks">
+    <div class="view-header">
+      <h2>Tasks</h2>
+      <div class="view-controls">
+        <select id="taskFilter" onchange="loadTasks()">
+          <option value="">All</option>
+          <option value="todo">Todo</option>
+          <option value="in_progress">In Progress</option>
+          <option value="done">Done</option>
+        </select>
+      </div>
+    </div>
+    <div id="tasksList" class="tasks-grid"></div>
+  </section>
+
+  <!-- ROUTINES -->
+  <section class="view" id="view-routines">
+    <div class="view-header"><h2>Daily Routines</h2><button class="btn-sm" onclick="openRoutineModal()">+ Add</button></div>
+    <div id="routinesList" class="list-cards"></div>
+  </section>
+
+  <!-- FIXED -->
+  <section class="view" id="view-fixed">
+    <div class="view-header"><h2>Fixed Schedule</h2><button class="btn-sm" onclick="openFixedModal()">+ Add Block</button></div>
+    <div id="fixedList" class="list-cards"></div>
+  </section>
+
+  <!-- ANALYTICS -->
+  <section class="view" id="view-analytics">
+    <div class="view-header"><h2>Analytics</h2></div>
+    <div class="analytics-grid">
+      <div class="analytics-card"><h4>Today</h4><div id="analyticsDaily"></div></div>
+      <div class="analytics-card wide"><h4>This Week</h4><div class="week-bars" id="weekBars"></div></div>
+    </div>
+  </section>
+</main>
+
+<!-- TIMER WIDGET -->
+<div class="timer-widget" id="timerWidget" style="display:none">
+  <div class="timer-title" id="timerTaskName"></div>
+  <div class="timer-time" id="timerDisplay">00:00</div>
+  <div class="timer-actions">
+    <button onclick="stopTimer('completed')">✅ Done</button>
+    <button onclick="stopTimer('paused')">⏸ Pause</button>
+  </div>
+</div>
+
+</div><!-- end appShell -->
+
+<!-- ── MODALS ─────────────────────────────────── -->
+<!-- Task Modal -->
+<div class="modal-backdrop" id="taskModal" style="display:none">
+  <div class="modal">
+    <div class="modal-header"><h3 id="taskModalTitle">New Task</h3><button onclick="closeTaskModal()">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="taskId">
+      <div class="form-group"><label>Title</label><input type="text" id="taskTitle" placeholder="e.g. DBMS Assignment"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Duration (min)</label><input type="number" id="taskDuration" value="60" min="10" step="10"></div>
+        <div class="form-group"><label>Priority</label><select id="taskPriority"><option value="1">Low</option><option value="2" selected>Medium</option><option value="3">High 🔥</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Deadline</label><input type="date" id="taskDeadline"></div>
+        <div class="form-group"><label>Category</label><select id="taskCategory"><option value="">None</option></select></div>
+      </div>
+      <div class="form-group"><label>Preferred Time</label><select id="taskPreferredTime"><option value="">Any</option><option value="morning">Morning (6–12)</option><option value="afternoon">Afternoon (12–17)</option><option value="evening">Evening (17–21)</option><option value="night">Night (21–00)</option></select></div>
+      <div class="form-group"><label>Notes</label><textarea id="taskNotes" placeholder="Optional notes..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeTaskModal()">Cancel</button>
+      <button class="btn-save" onclick="saveTask()">Save Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- Smart Slot Modal -->
+<div class="modal-backdrop" id="slotModal" style="display:none">
+  <div class="modal modal-sm">
+    <div class="modal-header"><h3>⚡ Smart Slot Detected</h3><button onclick="closeSlotModal()">✕</button></div>
+    <div class="modal-body" id="slotModalBody"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeSlotModal()">Dismiss</button>
+      <button class="btn-save" onclick="combineSlots()">Combine Slots</button>
+    </div>
+  </div>
+</div>
+
+<!-- Routine Modal -->
+<div class="modal-backdrop" id="routineModal" style="display:none">
+  <div class="modal">
+    <div class="modal-header"><h3>New Routine</h3><button onclick="document.getElementById('routineModal').style.display='none'">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Title</label><input type="text" id="routineTitle" placeholder="e.g. Morning Workout"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Start Time</label><input type="time" id="routineStart"></div>
+        <div class="form-group"><label>Duration (min)</label><input type="number" id="routineDuration" value="30"></div>
+      </div>
+      <div class="form-group">
+        <label>Repeat Days</label>
+        <div class="day-picker" id="dayPicker">
+          <button type="button" class="day-btn active" data-day="monday">Mon</button>
+          <button type="button" class="day-btn active" data-day="tuesday">Tue</button>
+          <button type="button" class="day-btn active" data-day="wednesday">Wed</button>
+          <button type="button" class="day-btn active" data-day="thursday">Thu</button>
+          <button type="button" class="day-btn active" data-day="friday">Fri</button>
+          <button type="button" class="day-btn" data-day="saturday">Sat</button>
+          <button type="button" class="day-btn" data-day="sunday">Sun</button>
+        </div>
+      </div>
+      <label class="checkbox-row"><input type="checkbox" id="routineOnHoliday"> Show on holidays</label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="document.getElementById('routineModal').style.display='none'">Cancel</button>
+      <button class="btn-save" onclick="saveRoutine()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Fixed Modal -->
+<div class="modal-backdrop" id="fixedModal" style="display:none">
+  <div class="modal">
+    <div class="modal-header"><h3>New Fixed Block</h3><button onclick="document.getElementById('fixedModal').style.display='none'">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>Title</label><input type="text" id="fixedTitle" placeholder="e.g. College, Sleep"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Start</label><input type="time" id="fixedStart"></div>
+        <div class="form-group"><label>End</label><input type="time" id="fixedEnd"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="document.getElementById('fixedModal').style.display='none'">Cancel</button>
+      <button class="btn-save" onclick="saveFixed()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Override Modal -->
+<div class="modal-backdrop" id="overrideModal" style="display:none">
+  <div class="modal modal-sm">
+    <div class="modal-header"><h3>Add Free Sub-Slot</h3><button onclick="document.getElementById('overrideModal').style.display='none'">✕</button></div>
+    <div class="modal-body">
+      <p style="color:var(--text-muted);margin-bottom:1rem;font-size:.9rem">Free period inside a fixed block (e.g. lunch inside college)</p>
+      <div class="form-group"><label>Label</label><input type="text" id="overrideLabel" value="Free Period"></div>
+      <div class="form-row">
+        <div class="form-group"><label>From</label><input type="time" id="overrideStart"></div>
+        <div class="form-group"><label>To</label><input type="time" id="overrideEnd"></div>
+      </div>
+      <input type="hidden" id="overrideFixedId">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="document.getElementById('overrideModal').style.display='none'">Cancel</button>
+      <button class="btn-save" onclick="saveOverride()">Add Free Slot</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
